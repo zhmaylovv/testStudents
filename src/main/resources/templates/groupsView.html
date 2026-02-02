@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ru">
+<head>
+    <title>Группы университета ScaleApps</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+<div>
+    <h2>Группы университета ScaleApps</h2>
+    <table th:border="2">
+        <thead>
+        <tr>
+            <th>Номер</th>
+            <th>Количество студентов</th>
+            <th>Действия</th>
+        </tr>
+        </thead>
+        <div th:each="group : ${groups}">
+            <tbody>
+            <tr>
+                <td th:text="${group.getGroupNumber()}"></td>
+                <td th:text="${group.getStudentCount}"></td>
+                <td><a th:href="'/students?group_id=' + ${group.id} +
+                                '&group_number=' + ${group.groupNumber}">Edit</a></td>
+            </tr>
+            </tbody>
+        </div>
+        <tr th:if="${#lists.isEmpty(groups)}">
+            <td colspan="3" style="text-align: center;">Групп пока нет</td>
+        </tr>
+    </table>
+    <div th:if="${groupPage.totalPages > 1}">
+        <a th:if="${groupPage.hasPrevious()}"
+           th:href="@{/groups(page=${groupPage.number - 1}, size=${groupPage.size})}">«Назад</a>
+        <span th:text="'Страница ' + (${groupPage.number} + 1) + ' из ' + ${groupPage.totalPages} + ' '"></span>
+        <a th:if="${groupPage.hasNext()}"
+           th:href="@{/groups(page=${groupPage.number + 1}, size=${groupPage.size})}">Вперед»</a>
+    </div>
+</div>
+<br>
+<div>
+    <form action="/groups" method="post">
+        <input type="text" pattern="\d{2}-\d{2}" title="Формат 00-00" name="groupNumber" placeholder="Номер группы">
+        <br><br>
+        <button type="submit">Добавить новую группу</button>
+    </form>
+</div>
+</body>
+</html>

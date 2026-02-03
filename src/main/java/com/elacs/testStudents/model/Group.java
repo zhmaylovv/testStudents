@@ -10,7 +10,6 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.Formula;
 import org.springframework.format.annotation.DateTimeFormat;
 
 import java.time.LocalDate;
@@ -32,7 +31,4 @@ public class Group {
     @DateTimeFormat(pattern = "dd-MM-yyyy")
     @Column(name = "added_date")
     private LocalDate addedDate;
-
-    @Formula("(SELECT count(*) FROM student s WHERE s.student_group_id = id)")
-    private int studentCount;
 }

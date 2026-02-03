@@ -1,5 +1,6 @@
 package com.elacs.testStudents.service;
 
+import com.elacs.testStudents.dto.GroupViewDto;
 import com.elacs.testStudents.model.Group;
 import com.elacs.testStudents.repository.GroupRepository;
 import lombok.RequiredArgsConstructor;
@@ -17,9 +18,9 @@ public class GroupServiceImpl implements GroupService {
     private final GroupRepository repository;
 
     @Override
-    public Page<Group> findAllOrderByAddedDateDesc(int page, int size) {
+    public Page<GroupViewDto> getGroupViewDtoPage(int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
-        return repository.findAllByOrderByAddedDateDesc(pageable);
+        return repository.findAllByOrderByAddedDateDescWithCount(pageable);
     }
 
     @Override

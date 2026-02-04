@@ -29,9 +29,9 @@ public class GroupServiceImplTest {
 
     @Test
     public void shouldDoRepositorySearch() {
-        service.findAllOrderByAddedDateDesc(1, 10);
+        service.getGroupViewDtoPage(1, 10);
 
-        verify(repository).findAllByOrderByAddedDateDesc(any());
+        verify(repository).findAllByOrderByAddedDateDescWithCount(any());
     }
 
     @Test

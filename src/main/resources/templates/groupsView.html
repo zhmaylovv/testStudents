@@ -16,13 +16,13 @@
             <th>Действия</th>
         </tr>
         </thead>
-        <div th:each="group : ${groups}">
+        <div th:each="groupDto : ${groupViewDtoList}">
             <tbody>
             <tr>
-                <td th:text="${group.getGroupNumber()}"></td>
-                <td th:text="${group.getStudentCount}"></td>
-                <td><a th:href="'/students?group_id=' + ${group.id} +
-                                '&group_number=' + ${group.groupNumber}">Edit</a></td>
+                <td th:text="${groupDto.getGroup.getGroupNumber()}"></td>
+                <td th:text="${groupDto.getStudentCount}"></td>
+                <td><a th:href="'/students?group_id=' + ${groupDto.getGroup.id} +
+                                '&group_number=' + ${groupDto.getGroup.groupNumber}">Edit</a></td>
             </tr>
             </tbody>
         </div>

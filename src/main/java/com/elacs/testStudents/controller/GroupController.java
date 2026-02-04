@@ -1,5 +1,6 @@
 package com.elacs.testStudents.controller;
 
+import com.elacs.testStudents.dto.GroupViewDto;
 import com.elacs.testStudents.model.Group;
 import com.elacs.testStudents.service.GroupService;
 import lombok.RequiredArgsConstructor;
@@ -20,9 +21,9 @@ public class GroupController {
     public String getAllGroups(@RequestParam(defaultValue = "0") int page,
                                @RequestParam(defaultValue = "10") int size,
                                Model model) {
-        Page<Group> groupPage = groupService.findAllOrderByAddedDateDesc(page, size);
+        Page<GroupViewDto> groupPage = groupService.getGroupViewDtoPage(page, size);
         model.addAttribute("groupPage", groupPage);
-        model.addAttribute("groups", groupPage.getContent());
+        model.addAttribute("groupViewDtoList", groupPage.getContent());
         return "groupsView";
     }
 

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Список тренировок</title>
+    <style>
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+        th { background-color: #f4f4f4; }
+        .urgent-row {
+            background-color: #fff3cd;
+            border-left: 5px solid #ffc107;
+        }
+        .btn-subscribe {
+            background-color: #28a745; color: white;
+            padding: 8px 16px; border: none; cursor: pointer; border-radius: 4px;
+        }
+        .btn-subscribe:hover { background-color: #218838; }
+    </style>
+</head>
+<body>
+
+<h2>Доступные тренировки</h2>
+
+<table>
+    <thead>
+    <tr>
+        <th>Название</th>
+        <th>Дата и время</th>
+        <th>Действие</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr th:each="training : ${trainingList}"
+        th:classappend="${training.date.isBefore(#temporals.createNow().plusDays(1))} ? 'urgent-row'">
+
+        <td th:text="${training.title}">Название тренировки</td>
+        <td th:text="${#temporals.format(training.date, 'dd.MM.yyyy HH:mm')}">01.01.2024 10:00</td>
+        <td>
+            <form th:action="@{/fit/subscribe}" method="post">
+                <input type="hidden" name="guid" th:value="${training.guid}"/>
+                <input type="hidden" name="date" th:value="${training.date}"/>
+                <button type="submit" class="btn-subscribe">Записаться</button>
+            </form>
+        </td>
+    </tr>
+    </tbody>
+</table>
+
+</body>
+</html>

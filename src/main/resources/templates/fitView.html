@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ru">
+<head>
+    <title>Записываем Свету на Сайкл</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+<h1>Сейчас вам придет код который никому нельзя сообщать! Мне - можно!</h1>
+
+<div th:if="${errorMessage}" class="alert alert-danger">
+    <h2 th:text="${errorMessage}"></h2><br>
+</div>
+
+<div>
+    <form action="/fit/code" method="post">
+        <input type="text" pattern="\d{4}" title="Формат: 4 цифры" name="code" placeholder="СЕКРЕТНЫЙ КОД">
+        <br><br>
+        <button type="submit">Отправить никому</button>
+    </form>
+</div>
+</body>
+</html>

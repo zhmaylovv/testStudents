@@ -2,50 +2,90 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Список тренировок</title>
     <style>
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+        body { font-family: sans-serif; margin: 0; padding: 10px; background-color: #f8f9fa; }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            table-layout: fixed;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px 4px;
+            text-align: left;
+            font-size: 14px;
+            word-wrap: break-word;
+        }
+
         th { background-color: #f4f4f4; }
+
+        .col-title { width: 35%; }
+        .col-places { width: 15%; }
+        .col-date { width: 25%; }
+        .col-action { width: 25%; }
+
+        .date-cell {
+            display: block;
+            line-height: 1.2;
+        }
+
         .urgent-row {
             background-color: #fff3cd;
-            border-left: 5px solid #ffc107;
+            box-shadow: inset 4px 0 0 #ffc107;
         }
+
         .btn-subscribe {
-            background-color: #28a745; color: white;
-            padding: 8px 16px; border: none; cursor: pointer; border-radius: 4px;
+            background-color: #28a745;
+            color: white;
+            padding: 8px 4px;
+            border: none;
+            cursor: pointer;
+            border-radius: 4px;
+            width: 100%; /* Кнопка на всю ширину ячейки */
+            font-size: 12px;
         }
-        .btn-subscribe:hover { background-color: #218838; }
     </style>
 </head>
 <body>
 
-<h2>Доступные тренировки</h2>
+<h2>Tренировки</h2>
+<div class="table-wrapper">
+    <table>
+        <thead>
+        <tr>
+            <th class="col-title">Тренировка</th>
+            <th class="col-places">Мест</th>
+            <th class="col-date">Дата</th>
+            <th class="col-action">Запись</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="training : ${trainingList}"
+            th:classappend="${training.date.isBefore(#temporals.createNow().now(@java.time.ZoneId.of('Asia/Novosibirsk')).plusDays(1))} ? 'urgent-row'">
 
-<table>
-    <thead>
-    <tr>
-        <th>Название</th>
-        <th>Дата и время</th>
-        <th>Действие</th>
-    </tr>
-    </thead>
-    <tbody>
-    <tr th:each="training : ${trainingList}"
-        th:classappend="${training.date.isBefore(#temporals.createNow().plusDays(1))} ? 'urgent-row'">
+            <td th:text="${training.title}">Название</td>
+            <td th:text="${training.availablePlaces}">5</td>
 
-        <td th:text="${training.title}">Название тренировки</td>
-        <td th:text="${#temporals.format(training.date, 'dd.MM.yyyy HH:mm')}">01.01.2024 10:00</td>
-        <td>
-            <form th:action="@{/fit/subscribe}" method="post">
-                <input type="hidden" name="guid" th:value="${training.guid}"/>
-                <input type="hidden" name="date" th:value="${training.date}"/>
-                <button type="submit" class="btn-subscribe">Записаться</button>
-            </form>
-        </td>
-    </tr>
-    </tbody>
-</table>
+            <td class="date-cell">
+                <span th:text="${#temporals.format(training.date, 'dd.MM.yy')}">01.01.24</span><br/>
+                <strong th:text="${#temporals.format(training.date, 'HH:mm')}">10:00</strong>
+            </td>
 
+            <td>
+                <form th:action="@{/fit/subscribe}" method="post">
+                    <input type="hidden" name="guid" th:value="${training.guid}"/>
+                    <input type="hidden" name="date" th:value="${training.date}"/>
+                    <button type="submit" class="btn-subscribe">ОК</button>
+                </form>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+</div>
 </body>
 </html>

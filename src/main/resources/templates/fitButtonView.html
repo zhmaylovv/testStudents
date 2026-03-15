@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Список тренировок</title>
     <style>
-        body { font-family: sans-serif; margin: 0; padding: 10px; background-color: #f8f9fa; }
+        body { font-family: sans-serif; margin: 0; padding: 10px; background-color: #143c43; color: white; }
 
         table {
             width: 100%;
@@ -22,7 +22,7 @@
             word-wrap: break-word;
         }
 
-        th { background-color: #f4f4f4; }
+        th { background-color: #f4f4f4; color: black; }
 
         .col-title { width: 35%; }
         .col-places { width: 15%; }
@@ -35,8 +35,8 @@
         }
 
         .urgent-row {
-            background-color: #fff3cd;
-            box-shadow: inset 4px 0 0 #ffc107;
+            background-color: #92909041;
+            box-shadow: inset 4px 0 0 #cccccc;
         }
 
         .btn-subscribe {
@@ -47,6 +47,16 @@
             cursor: pointer;
             border-radius: 4px;
             width: 100%; /* Кнопка на всю ширину ячейки */
+            font-size: 12px;
+        }
+
+        .btn-scheduled {
+            background-color: #6c757d;
+            color: white;
+            padding: 8px 4px;
+            border: none;
+            border-radius: 4px;
+            width: 100%;
             font-size: 12px;
         }
     </style>
@@ -80,7 +90,10 @@
                 <form th:action="@{/fit/subscribe}" method="post">
                     <input type="hidden" name="guid" th:value="${training.guid}"/>
                     <input type="hidden" name="date" th:value="${training.date}"/>
-                    <button type="submit" class="btn-subscribe">ЗАПИСАТЬСЯ</button>
+                    <button type="submit"
+                            th:class="${training.scheduled} ? 'btn-scheduled' : 'btn-subscribe'"
+                            th:text="${training.scheduled} ? 'УЖЕ' : 'ЗАПИСАТЬСЯ'"
+                            th:disabled="${training.scheduled}">ЗАПИСАТЬСЯ</button>
                 </form>
             </td>
         </tr>

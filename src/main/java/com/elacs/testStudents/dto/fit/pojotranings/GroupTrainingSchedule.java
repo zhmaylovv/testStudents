@@ -8,5 +8,6 @@ public record GroupTrainingSchedule(String guid,
                                     String title,
                                     int availablePlaces,
                                     @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ssXXX")
-                                    LocalDateTime date) {
+                                    LocalDateTime date,
+                                    Boolean scheduled) {
 }

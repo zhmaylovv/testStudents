@@ -15,7 +15,9 @@ import com.elacs.testStudents.exceptions.SessionErrorException;
 import com.elacs.testStudents.exceptions.SubscribeError;
 import com.elacs.testStudents.exceptions.VerificationAlreadySentException;
 import com.elacs.testStudents.model.FitData;
+import com.elacs.testStudents.model.ScheduleTask;
 import com.elacs.testStudents.repository.FitDataRepository;
+import com.elacs.testStudents.repository.ScheduleTaskRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,6 +43,7 @@ public class FitControlServiceImpl implements FitControlService {
     private static final String SIGNATURE = System.getenv("FIT_SIGN");
     private final RestClient restClient;
     private final FitDataRepository fitDataRepository;
+    private final ScheduleTaskRepository scheduleTaskRepository;
     private final ObjectMapper mapper;
     @Lazy
     @Autowired
@@ -215,6 +218,7 @@ public class FitControlServiceImpl implements FitControlService {
             log.info("SUBSCRIBE ERROR" + e.getMessage());
             throw new SubscribeError("Не получилось записаться");
         }
+        scheduleTaskRepository.deleteByTrainingId(id);
         log.info("ВЫПОЛНЕНA ЗАДАЧА!!!");
     }
 
@@ -243,12 +247,26 @@ public class FitControlServiceImpl implements FitControlService {
                 })
                 .retrieve().body(FitTrainingRs.class);
         assert rs != null;
+        fillSchedule(rs.result().groupTrainingScheduleList());
         return rs.result().groupTrainingScheduleList();
     }
 
     @Override
     public void setSchedulerTask(String id, LocalDateTime dateTime) {
+        scheduleTaskRepository.save(ScheduleTask.builder().trainingId(id).trainingDate(dateTime)
+                .build());
         schedulerService.scheduleTask(id, dateTime);
+    }
+
+    private void fillSchedule(List<GroupTrainingSchedule> groupTrainingSchedules) {
+        List<ScheduleTask> scheduleTasks = scheduleTaskRepository.findAll();
+        groupTrainingSchedules.replaceAll(it -> isTrainingScheduled(scheduleTasks, it)
+                ? new GroupTrainingSchedule(it.guid(), it.title(), it.availablePlaces(), it.date(), true)
+                : it);
+    }
+
+    private boolean isTrainingScheduled(List<ScheduleTask> scheduleTasks, GroupTrainingSchedule training) {
+        return scheduleTasks.stream().anyMatch(it-> it.getTrainingId().equals(training.guid()));
     }
 
     private boolean isTokenTimeExp(String exp) {

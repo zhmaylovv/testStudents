@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Telegram — авторизация</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #f8f9fa;
+            color: #333;
+        }
+        h1 { font-size: 1.2rem; text-align: center; margin-bottom: 6px; }
+        p  { font-size: 0.9rem; color: #666; text-align: center; margin-bottom: 20px; }
+
+        form { width: 100%; max-width: 400px; }
+
+        input[type="text"], input[type="password"] {
+            width: 100%;
+            padding: 15px;
+            font-size: 1.4rem;
+            text-align: center;
+            letter-spacing: 4px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            box-sizing: border-box;
+        }
+
+        button {
+            width: 100%;
+            padding: 15px;
+            font-size: 1rem;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-top: 12px;
+        }
+
+        .section { width: 100%; max-width: 400px; margin-top: 20px; }
+        .section h2 { font-size: 1rem; border-bottom: 1px solid #ddd; padding-bottom: 6px; }
+
+        .back-link { margin-top: 20px; font-size: 0.9rem; }
+        .back-link a { color: #007bff; }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: bold;
+            margin-bottom: 16px;
+        }
+        .status-AUTHORIZED   { background: #28a745; color: white; }
+        .status-WAITING_CODE { background: #ffc107; color: black; }
+        .status-WAITING_2FA  { background: #fd7e14; color: white; }
+        .status-DISABLED,
+        .status-ERROR        { background: #dc3545; color: white; }
+        .status-NOT_STARTED  { background: #6c757d; color: white; }
+    </style>
+</head>
+<body>
+
+<span class="status-badge"
+      th:classappend="'status-' + ${authState}"
+      th:text="${authState}">STATE</span>
+
+<!-- Already authorized -->
+<div th:if="${authState.name() == 'AUTHORIZED'}">
+    <h1>Уже авторизован</h1>
+    <p>Аккаунт подключён. Можно вернуться к управлению темами.</p>
+</div>
+
+<!-- Waiting for auth code -->
+<div th:if="${authState.name() == 'WAITING_CODE'}" class="section">
+    <h1>Введите код из Telegram</h1>
+    <p>Код пришёл в приложение Telegram (или SMS) на номер, указанный в TELEGRAM_PHONE.</p>
+    <form action="/telegram/auth" method="post">
+        <input type="text"
+               name="code"
+               placeholder="12345"
+               inputmode="numeric"
+               maxlength="10"
+               autocomplete="one-time-code"
+               required>
+        <button type="submit">Подтвердить</button>
+    </form>
+</div>
+
+<!-- Waiting for 2FA password -->
+<div th:if="${authState.name() == 'WAITING_2FA'}" class="section">
+    <h1>Введите облачный пароль (2FA)</h1>
+    <p>На аккаунте включена двухфакторная аутентификация.</p>
+    <form action="/telegram/auth/2fa" method="post">
+        <input type="password"
+               name="password"
+               placeholder="Пароль"
+               required>
+        <button type="submit">Войти</button>
+    </form>
+</div>
+
+<!-- Not started / Error / Disabled -->
+<div th:if="${authState.name() == 'NOT_STARTED' or authState.name() == 'ERROR' or authState.name() == 'DISABLED'}">
+    <h1>Telegram не подключён</h1>
+    <p th:if="${authState.name() == 'DISABLED'}">
+        Переменная окружения <code>TELEGRAM_API_ID</code> не задана.<br>
+        Получите API ID и API Hash на <strong>my.telegram.org</strong> и задайте env vars:<br>
+        <code>TELEGRAM_API_ID</code>, <code>TELEGRAM_API_HASH</code>, <code>TELEGRAM_PHONE</code>
+    </p>
+    <p th:if="${authState.name() != 'DISABLED'}">
+        TDLib ещё инициализируется или произошла ошибка.<br>
+        Обновите страницу через несколько секунд.
+    </p>
+</div>
+
+<div class="back-link">
+    <a href="/telegram">← Назад к темам</a>
+</div>
+
+</body>
+</html>

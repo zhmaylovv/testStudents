@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Telegram — темы</title>
+    <style>
+        body { font-family: sans-serif; margin: 0; padding: 10px; background-color: #143c43; color: white; }
+        h2 { margin-top: 0; }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: bold;
+            margin-bottom: 12px;
+        }
+        .status-AUTHORIZED    { background: #28a745; color: white; }
+        .status-WAITING_CODE  { background: #ffc107; color: black; }
+        .status-WAITING_2FA   { background: #fd7e14; color: white; }
+        .status-DISABLED,
+        .status-ERROR,
+        .status-CLOSED        { background: #dc3545; color: white; }
+        .status-NOT_STARTED   { background: #6c757d; color: white; }
+
+        .auth-link { color: #ffc107; font-weight: bold; text-decoration: underline; margin-left: 10px; }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; table-layout: fixed; }
+        th, td { border: 1px solid #ddd; padding: 8px 6px; font-size: 13px; word-wrap: break-word; }
+        th { background-color: #f4f4f4; color: black; }
+
+        .col-chat  { width: 22%; }
+        .col-topic { width: 22%; }
+        .col-id    { width: 18%; }
+        .col-en    { width: 10%; text-align: center; }
+        .col-act   { width: 28%; }
+
+        button {
+            padding: 6px 10px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            color: white;
+        }
+        .btn-toggle-on  { background-color: #28a745; }
+        .btn-toggle-off { background-color: #6c757d; }
+        .btn-delete     { background-color: #dc3545; margin-left: 4px; }
+        .btn-read       { background-color: #007bff; margin-top: 10px; padding: 10px 20px; font-size: 14px; }
+
+        /* Add form */
+        .add-form {
+            margin-top: 20px;
+            background: rgba(255,255,255,0.08);
+            border-radius: 8px;
+            padding: 14px;
+        }
+        .add-form h3 { margin-top: 0; font-size: 15px; }
+        .form-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
+        .form-row input {
+            flex: 1 1 180px;
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid #aaa;
+            font-size: 13px;
+            background: #fff;
+            color: #000;
+        }
+        .btn-add { background-color: #17a2b8; padding: 8px 16px; font-size: 13px; }
+
+        /* Chats helper */
+        .chats-section { margin-top: 14px; }
+        .chats-section summary { cursor: pointer; color: #aef; font-size: 13px; }
+        #chatList { margin-top: 8px; font-size: 12px; line-height: 1.8; }
+        .chat-item { cursor: pointer; color: #7df; }
+        .chat-item:hover { text-decoration: underline; }
+
+        .hint { font-size: 11px; color: #aaa; margin-top: 4px; }
+    </style>
+</head>
+<body>
+
+<h2>Telegram — авто-прочтение тем</h2>
+
+<!-- Auth status -->
+<div>
+    <span class="status-badge" th:classappend="'status-' + ${authState}"
+          th:text="${authState}">AUTHORIZED</span>
+
+    <a th:if="${authState.name() == 'WAITING_CODE' or authState.name() == 'WAITING_2FA'}"
+       href="/telegram/auth" class="auth-link">→ Ввести код</a>
+
+    <a th:if="${authState.name() == 'NOT_STARTED' or authState.name() == 'ERROR'}"
+       href="/telegram/auth" class="auth-link">→ Авторизоваться</a>
+</div>
+
+<!-- Manual trigger -->
+<form action="/telegram/read" method="post">
+    <button type="submit" class="btn-read">Прочитать всё сейчас</button>
+</form>
+
+<!-- Topics table -->
+<table>
+    <thead>
+    <tr>
+        <th class="col-chat">Чат</th>
+        <th class="col-topic">Тема</th>
+        <th class="col-id">Chat ID / Topic ID</th>
+        <th class="col-en">Вкл</th>
+        <th class="col-act">Действия</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr th:each="topic : ${topics}">
+        <td th:text="${topic.chatTitle}">Название чата</td>
+        <td th:text="${topic.topicId == 0 ? '(весь чат)' : topic.topicTitle}">Тема</td>
+        <td style="font-size:11px;">
+            <span th:text="${topic.chatId}"></span><br/>
+            <span th:text="${topic.topicId != 0 ? topic.topicId : '—'}"></span>
+        </td>
+        <td style="text-align:center;">
+            <form th:action="@{/telegram/topics/{id}/toggle(id=${topic.id})}" method="post" style="display:inline;">
+                <button type="submit"
+                        th:class="${topic.enabled} ? 'btn-toggle-on' : 'btn-toggle-off'"
+                        th:text="${topic.enabled} ? '✓' : '✗'">✓</button>
+            </form>
+        </td>
+        <td>
+            <form th:action="@{/telegram/topics/{id}/delete(id=${topic.id})}" method="post" style="display:inline;">
+                <button type="submit" class="btn-delete"
+                        onclick="return confirm('Удалить?')">Удалить</button>
+            </form>
+        </td>
+    </tr>
+    <tr th:if="${#lists.isEmpty(topics)}">
+        <td colspan="5" style="text-align:center; color:#aaa;">Нет добавленных тем</td>
+    </tr>
+    </tbody>
+</table>
+
+<!-- Add topic form -->
+<div class="add-form">
+    <h3>Добавить тему</h3>
+    <form action="/telegram/topics/add" method="post">
+        <div class="form-row">
+            <input type="text" name="chatTitle"  placeholder="Название чата" required>
+            <input type="text" name="topicTitle" placeholder="Название темы (опц.)">
+        </div>
+        <div class="form-row">
+            <input type="number" name="chatId"  placeholder="Chat ID (напр. -1001234567890)" required>
+            <input type="number" name="topicId" placeholder="Topic ID (0 = весь чат)" value="0">
+        </div>
+        <p class="hint">
+            Chat ID для групп/каналов отрицательный. Найти: добавить бота @userinfobot в чат.<br>
+            Topic ID = ID первого сообщения в теме (видно в URL веб-версии Telegram при открытии темы).
+        </p>
+        <button type="submit" class="btn-add">Добавить</button>
+    </form>
+
+    <!-- Chats helper (loads via API) -->
+    <details class="chats-section">
+        <summary>Загрузить список чатов аккаунта</summary>
+        <div id="chatList">
+            <button onclick="loadChats()" style="background:#17a2b8; margin-top:8px; padding:6px 12px; font-size:12px;">Загрузить</button>
+        </div>
+    </details>
+</div>
+
+<script>
+    function loadChats() {
+        document.getElementById('chatList').innerHTML = 'Загрузка...';
+        fetch('/telegram/chats')
+            .then(r => r.json())
+            .then(chats => {
+                if (chats.length === 0) {
+                    document.getElementById('chatList').innerHTML = '<span style="color:#aaa">Нет чатов или не авторизован</span>';
+                    return;
+                }
+                let html = '<div style="margin-top:6px;">Нажмите на чат чтобы скопировать ID:</div>';
+                chats.forEach(c => {
+                    html += `<div class="chat-item" onclick="navigator.clipboard.writeText('${c.id}').then(()=>alert('Скопировано: ${c.id}'))">`
+                        + `[${c.id}] ${c.title}</div>`;
+                });
+                document.getElementById('chatList').innerHTML = html;
+            })
+            .catch(() => {
+                document.getElementById('chatList').innerHTML = '<span style="color:#f88">Ошибка загрузки</span>';
+            });
+    }
+</script>
+
+</body>
+</html>

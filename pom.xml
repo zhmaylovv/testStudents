@@ -26,6 +26,29 @@
         <tag/>
         <url/>
     </scm>
+
+    <repositories>
+        <!-- tdlight-java: Java wrapper over TDLib (Telegram MTProto userbot) -->
+        <!-- Latest version: https://github.com/tdlight-team/tdlight-java/releases -->
+        <repository>
+            <id>mchv</id>
+            <name>MCHV Apache Maven Packages</name>
+            <url>https://mvn.mchv.eu/repository/mchv/</url>
+        </repository>
+    </repositories>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>it.tdlight</groupId>
+                <artifactId>tdlight-java-bom</artifactId>
+                <version>3.4.4+td.1.8.52</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
     <properties>
         <java.version>17</java.version>
     </properties>
@@ -76,6 +99,24 @@
             <artifactId>mockito-core</artifactId>
             <version>5.21.0</version>
             <scope>test</scope>
+        </dependency>
+
+        <!-- tdlight-java: TDLib wrapper for Telegram MTProto userbot (version from BOM) -->
+        <dependency>
+            <groupId>it.tdlight</groupId>
+            <artifactId>tdlight-java</artifactId>
+        </dependency>
+        <!-- Linux AMD64 with GNU GCC + OpenSSL 1 (для сервера) -->
+        <dependency>
+            <groupId>it.tdlight</groupId>
+            <artifactId>tdlight-natives</artifactId>
+            <classifier>linux_amd64_gnu_ssl1</classifier>
+        </dependency>
+        <!-- Windows AMD64 (для локальной разработки) -->
+        <dependency>
+            <groupId>it.tdlight</groupId>
+            <artifactId>tdlight-natives</artifactId>
+            <classifier>windows_amd64</classifier>
         </dependency>
     </dependencies>
 

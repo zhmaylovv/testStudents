@@ -27,6 +27,8 @@ import java.nio.file.Paths;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -55,6 +57,9 @@ public class TelegramClientServiceImpl implements TelegramClientService {
     private SimpleTelegramClient client;
 
     private volatile AuthState authState = AuthState.NOT_STARTED;
+    private volatile Instant floodWaitUntil = Instant.EPOCH;
+    private static final Pattern FLOOD_WAIT_PATTERN = Pattern.compile("FLOOD_WAIT_(\\d+)");
+
     private final AtomicReference<CompletableFuture<String>> pendingCode = new AtomicReference<>();
     private final AtomicReference<CompletableFuture<String>> pending2fa  = new AtomicReference<>();
 
@@ -184,6 +189,11 @@ public class TelegramClientServiceImpl implements TelegramClientService {
     }
 
     @Override
+    public Instant getFloodWaitUntil() {
+        return floodWaitUntil;
+    }
+
+    @Override
     public void submitAuthCode(String code) {
         CompletableFuture<String> future = pendingCode.get();
         if (future != null) {
@@ -207,6 +217,10 @@ public class TelegramClientServiceImpl implements TelegramClientService {
     public void markTopicAsRead(long chatId, long topicId) {
         if (authState != AuthState.AUTHORIZED || client == null) {
             log.warn("Cannot mark as read: not authorized (state={})", authState);
+            return;
+        }
+        if (Instant.now().isBefore(floodWaitUntil)) {
+            log.warn("Skipping markTopicAsRead: FLOOD_WAIT active until {}", floodWaitUntil);
             return;
         }
         if (topicId == 0) {
@@ -297,6 +311,16 @@ public class TelegramClientServiceImpl implements TelegramClientService {
     // Private helpers
     // -------------------------------------------------------------------------
 
+    private void handleFloodWait(Throwable e) {
+        String msg = e.getMessage() != null ? e.getMessage() : "";
+        Matcher m = FLOOD_WAIT_PATTERN.matcher(msg);
+        if (m.find()) {
+            long seconds = Long.parseLong(m.group(1));
+            floodWaitUntil = Instant.now().plusSeconds(seconds);
+            log.warn("Telegram FLOOD_WAIT: pausing all requests for {} seconds (until {})", seconds, floodWaitUntil);
+        }
+    }
+
     private void clearSessionFromDb() {
         try {
             sessionRepository.deleteById(1L);
@@ -340,32 +364,41 @@ public class TelegramClientServiceImpl implements TelegramClientService {
                 })
                 .exceptionally(e -> {
                     client.send(new TdApi.CloseChat(chatId));
+                    handleFloodWait(e);
                     log.warn("Failed to get history for chat {}: {}", chatId, e.getMessage());
                     return null;
                 });
     }
 
     private void markForumTopicAsRead(long chatId, long topicId) {
-        // Open the chat first so TDLib loads it into local cache
+        // topicId = messageThreadId (returned by GetForumTopics, NOT the sequential number in URL)
         client.send(new TdApi.OpenChat(chatId))
-                .thenCompose(ok -> client.send(new TdApi.GetMessageThreadHistory(chatId, topicId, 0, 0, 1)))
-                .thenAccept(messages -> {
+                .thenCompose(ok -> client.send(new TdApi.GetForumTopic(chatId, topicId)))
+                .thenAccept(topic -> {
                     client.send(new TdApi.CloseChat(chatId));
-                    if (messages.messages.length == 0) {
-                        log.debug("Topic {} in chat {} has no messages, skipping", topicId, chatId);
+                    if (topic.lastMessage == null) {
+                        log.debug("Forum topic {} in chat {} has no messages, skipping", topicId, chatId);
                         return;
                     }
-                    long lastId = messages.messages[0].id;
-                    client.send(new TdApi.ViewMessages(chatId, new long[]{lastId}, null, true))
-                            .thenAccept(v -> log.info("Topic {} in chat {} marked as read", topicId, chatId))
+                    if (topic.unreadCount == 0) {
+                        log.debug("Forum topic {} in chat {} already read", topicId, chatId);
+                        return;
+                    }
+                    long lastId = topic.lastMessage.id;
+                    client.send(new TdApi.ViewMessages(chatId, new long[]{lastId},
+                                    new TdApi.MessageSourceForumTopicHistory(), true))
+                            .thenAccept(v -> log.info("Topic {} in chat {} marked as read (was {} unread)",
+                                    topicId, chatId, topic.unreadCount))
                             .exceptionally(e -> {
+                                handleFloodWait(e);
                                 log.warn("Failed to view messages in topic {} chat {}: {}", topicId, chatId, e.getMessage());
                                 return null;
                             });
                 })
                 .exceptionally(e -> {
                     client.send(new TdApi.CloseChat(chatId));
-                    log.warn("Failed to get thread history for topic {} in chat {}: {}", topicId, chatId, e.getMessage());
+                    handleFloodWait(e);
+                    log.warn("Failed to get forum topic {} in chat {}: {}", topicId, chatId, e.getMessage());
                     return null;
                 });
     }

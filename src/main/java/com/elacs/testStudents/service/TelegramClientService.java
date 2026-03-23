@@ -27,6 +27,9 @@ public interface TelegramClientService {
 
     AuthState getAuthState();
 
+    /** Returns the time until which all requests are paused due to Telegram FLOOD_WAIT, or Instant.EPOCH if not rate-limited */
+    java.time.Instant getFloodWaitUntil();
+
     /** Submit the code from SMS / Telegram notification */
     void submitAuthCode(String code);
 

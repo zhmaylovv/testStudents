@@ -54,8 +54,16 @@ public class TelegramReadServiceImpl implements TelegramReadService {
 
         log.info("Marking {} topic(s) as read", topics.size());
         for (TelegramTopic topic : topics) {
+            if (java.time.Instant.now().isBefore(telegramClientService.getFloodWaitUntil())) {
+                log.warn("FLOOD_WAIT active, stopping read cycle early");
+                break;
+            }
             try {
                 telegramClientService.markTopicAsRead(topic.getChatId(), topic.getTopicId());
+                Thread.sleep(3000);
+            } catch (InterruptedException ie) {
+                Thread.currentThread().interrupt();
+                break;
             } catch (Exception e) {
                 log.error("Failed to mark topic id={} (chat={}, topic={}) as read",
                         topic.getId(), topic.getChatId(), topic.getTopicId(), e);

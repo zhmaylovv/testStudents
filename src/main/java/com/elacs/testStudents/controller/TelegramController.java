@@ -58,6 +58,12 @@ public class TelegramController {
         return "redirect:/telegram";
     }
 
+    @PostMapping("/auth/restart")
+    public String restartAuth() {
+        telegramClientService.restartAuth();
+        return "redirect:/telegram/auth";
+    }
+
     // -------------------------------------------------------------------------
     // Topics CRUD
     // -------------------------------------------------------------------------

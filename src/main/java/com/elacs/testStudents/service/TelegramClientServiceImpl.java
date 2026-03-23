@@ -167,7 +167,9 @@ public class TelegramClientServiceImpl implements TelegramClientService {
 
         } else if (state instanceof TdApi.AuthorizationStateClosed) {
             authState = AuthState.CLOSED;
-            log.info("TDLib client closed");
+            log.warn("TDLib client closed — clearing stale session and restarting");
+            clearSessionFromDb();
+            new Thread(this::restartClient, "tdlib-restart").start();
         }
     }
 
@@ -233,6 +235,13 @@ public class TelegramClientServiceImpl implements TelegramClientService {
     }
 
     @Override
+    public void restartAuth() {
+        log.info("Manual restart requested");
+        clearSessionFromDb();
+        new Thread(this::restartClient, "tdlib-restart").start();
+    }
+
+    @Override
     public List<ChatInfo> getChats() {
         if (authState != AuthState.AUTHORIZED || client == null) {
             return List.of();
@@ -268,6 +277,30 @@ public class TelegramClientServiceImpl implements TelegramClientService {
     // -------------------------------------------------------------------------
     // Private helpers
     // -------------------------------------------------------------------------
+
+    private void clearSessionFromDb() {
+        try {
+            sessionRepository.deleteById(1L);
+            Files.deleteIfExists(SESSION_DIR.resolve("td.binlog"));
+            log.info("Stale session cleared from DB and disk");
+        } catch (Exception e) {
+            log.warn("Failed to clear stale session", e);
+        }
+    }
+
+    private void restartClient() {
+        if (client != null) {
+            try { client.close(); } catch (Exception ignored) {}
+            client = null;
+        }
+        if (factory != null) {
+            try { factory.close(); } catch (Exception ignored) {}
+            factory = null;
+        }
+        try { Thread.sleep(2000); } catch (InterruptedException ignored) {}
+        authState = AuthState.NOT_STARTED;
+        initClient();
+    }
 
     private void markChatAsRead(long chatId) {
         client.send(new TdApi.GetChatHistory(chatId, 0, 0, 1, false))

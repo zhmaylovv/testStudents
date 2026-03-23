@@ -40,6 +40,9 @@ public interface TelegramClientService {
     /** Read td.binlog from the temp directory and persist it to the DB */
     void flushSessionToDb();
 
+    /** Clear stale session from DB and disk, then restart TDLib client */
+    void restartAuth();
+
     /** Return the first 50 chats from the account (requires AUTHORIZED state) */
     List<ChatInfo> getChats();
 }

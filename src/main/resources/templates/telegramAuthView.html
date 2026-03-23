@@ -63,6 +63,8 @@
         .status-DISABLED,
         .status-ERROR        { background: #dc3545; color: white; }
         .status-NOT_STARTED  { background: #6c757d; color: white; }
+        .status-CLOSED       { background: #6c757d; color: white; }
+        .btn-danger { background-color: #dc3545; }
     </style>
 </head>
 <body>
@@ -103,6 +105,15 @@
                placeholder="Пароль"
                required>
         <button type="submit">Войти</button>
+    </form>
+</div>
+
+<!-- Session closed — manual restart -->
+<div th:if="${authState.name() == 'CLOSED'}" class="section">
+    <h1>Сессия закрыта</h1>
+    <p>TDLib сессия истекла или была закрыта. Нажмите кнопку чтобы очистить сессию и начать авторизацию заново.</p>
+    <form action="/telegram/auth/restart" method="post">
+        <button type="submit" class="btn-danger">Перезапустить авторизацию</button>
     </form>
 </div>
 

@@ -28,6 +28,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
@@ -235,6 +236,24 @@ public class TelegramClientServiceImpl implements TelegramClientService {
     }
 
     @Override
+    public List<TopicInfo> getForumTopics(long chatId) {
+        if (authState != AuthState.AUTHORIZED || client == null) {
+            return List.of();
+        }
+        try {
+            TdApi.ForumTopics result = client
+                    .send(new TdApi.GetForumTopics(chatId, "", 0, 0, 0, 100))
+                    .get(10, TimeUnit.SECONDS);
+            return Arrays.stream(result.topics)
+                    .map(t -> new TopicInfo(t.info.messageThreadId, t.info.name))
+                    .collect(Collectors.toList());
+        } catch (Exception e) {
+            log.warn("Failed to load forum topics for chat {}: {}", chatId, e.getMessage());
+            return List.of();
+        }
+    }
+
+    @Override
     public void restartAuth() {
         log.info("Manual restart requested");
         clearSessionFromDb();
@@ -303,38 +322,50 @@ public class TelegramClientServiceImpl implements TelegramClientService {
     }
 
     private void markChatAsRead(long chatId) {
-        client.send(new TdApi.GetChatHistory(chatId, 0, 0, 1, false))
+        client.send(new TdApi.OpenChat(chatId))
+                .thenCompose(ok -> client.send(new TdApi.GetChatHistory(chatId, 0, 0, 1, false)))
                 .thenAccept(messages -> {
-                    if (messages.messages.length == 0) return;
+                    client.send(new TdApi.CloseChat(chatId));
+                    if (messages.messages.length == 0) {
+                        log.debug("Chat {} has no messages, skipping", chatId);
+                        return;
+                    }
                     long lastId = messages.messages[0].id;
                     client.send(new TdApi.ViewMessages(chatId, new long[]{lastId}, null, true))
-                            .thenAccept(ok -> log.info("Chat {} marked as read", chatId))
+                            .thenAccept(v -> log.info("Chat {} marked as read", chatId))
                             .exceptionally(e -> {
-                                log.error("Failed to view messages in chat {}", chatId, e);
+                                log.warn("Failed to view messages in chat {}: {}", chatId, e.getMessage());
                                 return null;
                             });
                 })
                 .exceptionally(e -> {
-                    log.error("Failed to get history for chat {}", chatId, e);
+                    client.send(new TdApi.CloseChat(chatId));
+                    log.warn("Failed to get history for chat {}: {}", chatId, e.getMessage());
                     return null;
                 });
     }
 
     private void markForumTopicAsRead(long chatId, long topicId) {
-        // topicId is the message_thread_id = ID of the first message in the thread
-        client.send(new TdApi.GetMessageThreadHistory(chatId, topicId, 0, 0, 1))
+        // Open the chat first so TDLib loads it into local cache
+        client.send(new TdApi.OpenChat(chatId))
+                .thenCompose(ok -> client.send(new TdApi.GetMessageThreadHistory(chatId, topicId, 0, 0, 1)))
                 .thenAccept(messages -> {
-                    if (messages.messages.length == 0) return;
+                    client.send(new TdApi.CloseChat(chatId));
+                    if (messages.messages.length == 0) {
+                        log.debug("Topic {} in chat {} has no messages, skipping", topicId, chatId);
+                        return;
+                    }
                     long lastId = messages.messages[0].id;
                     client.send(new TdApi.ViewMessages(chatId, new long[]{lastId}, null, true))
-                            .thenAccept(ok -> log.info("Topic {} in chat {} marked as read", topicId, chatId))
+                            .thenAccept(v -> log.info("Topic {} in chat {} marked as read", topicId, chatId))
                             .exceptionally(e -> {
-                                log.error("Failed to view messages in topic {} chat {}", topicId, chatId, e);
+                                log.warn("Failed to view messages in topic {} chat {}: {}", topicId, chatId, e.getMessage());
                                 return null;
                             });
                 })
                 .exceptionally(e -> {
-                    log.error("Failed to get thread history for topic {} in chat {}", topicId, chatId, e);
+                    client.send(new TdApi.CloseChat(chatId));
+                    log.warn("Failed to get thread history for topic {} in chat {}: {}", topicId, chatId, e.getMessage());
                     return null;
                 });
     }

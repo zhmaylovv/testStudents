@@ -23,6 +23,8 @@ public interface TelegramClientService {
 
     record ChatInfo(long id, String title) {}
 
+    record TopicInfo(long id, String name) {}
+
     AuthState getAuthState();
 
     /** Submit the code from SMS / Telegram notification */
@@ -45,4 +47,7 @@ public interface TelegramClientService {
 
     /** Return the first 50 chats from the account (requires AUTHORIZED state) */
     List<ChatInfo> getChats();
+
+    /** Return forum topics for a supergroup chat (empty list if not a forum or not authorized) */
+    List<TopicInfo> getForumTopics(long chatId);
 }

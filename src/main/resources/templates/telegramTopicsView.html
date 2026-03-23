@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Telegram — темы</title>
     <style>
-        body { font-family: sans-serif; margin: 0; padding: 10px; background-color: #143c43; color: white; }
+        body { font-family: sans-serif; margin: 0 auto; padding: 10px; background-color: #143c43; color: white; max-width: 900px; }
         h2 { margin-top: 0; }
 
         .status-badge {
@@ -72,9 +72,16 @@
         /* Chats helper */
         .chats-section { margin-top: 14px; }
         .chats-section summary { cursor: pointer; color: #aef; font-size: 13px; }
-        #chatList { margin-top: 8px; font-size: 12px; line-height: 1.8; }
-        .chat-item { cursor: pointer; color: #7df; }
-        .chat-item:hover { text-decoration: underline; }
+        #chatTable { margin-top: 8px; width: 100%; border-collapse: collapse; font-size: 12px; }
+        #chatTable th { background: rgba(255,255,255,0.15); color: #fff; padding: 5px 6px; text-align: left; border: 1px solid #555; }
+        #chatTable td { padding: 5px 6px; border: 1px solid #555; vertical-align: top; }
+        #chatTable tr:hover td { background: rgba(255,255,255,0.05); }
+        .topics-cell { font-size: 11px; }
+        .topic-row { display: flex; align-items: center; gap: 6px; padding: 2px 0; }
+        .topic-row span { color: #aef; }
+        .btn-fill { background: #17a2b8; padding: 2px 7px; font-size: 11px; border-radius: 3px; cursor: pointer; border: none; color: white; }
+        .btn-fill-chat { background: #6c757d; padding: 3px 8px; font-size: 11px; border-radius: 3px; cursor: pointer; border: none; color: white; }
+        .loading-topics { color: #aaa; font-size: 11px; }
 
         .hint { font-size: 11px; color: #aaa; margin-top: 4px; }
     </style>
@@ -161,32 +168,74 @@
     <!-- Chats helper (loads via API) -->
     <details class="chats-section">
         <summary>Загрузить список чатов аккаунта</summary>
-        <div id="chatList">
-            <button onclick="loadChats()" style="background:#17a2b8; margin-top:8px; padding:6px 12px; font-size:12px;">Загрузить</button>
+        <div id="chatListWrap">
+            <button onclick="loadChats()" style="background:#17a2b8; margin-top:8px; padding:6px 12px; font-size:12px; border:none; border-radius:4px; color:white; cursor:pointer;">Загрузить</button>
         </div>
     </details>
 </div>
 
 <script>
+    function fillForm(chatId, chatTitle, topicId, topicTitle) {
+        document.querySelector('input[name="chatId"]').value   = chatId;
+        document.querySelector('input[name="topicId"]').value  = topicId;
+        document.querySelector('input[name="chatTitle"]').value  = chatTitle;
+        document.querySelector('input[name="topicTitle"]').value = topicTitle;
+        document.querySelector('input[name="chatTitle"]').scrollIntoView({behavior:'smooth'});
+    }
+
+    function loadTopicsForRow(chatId, chatTitle, cell) {
+        cell.innerHTML = '<span class="loading-topics">Загрузка...</span>';
+        fetch('/telegram/topics-for-chat?chatId=' + chatId)
+            .then(r => r.json())
+            .then(topics => {
+                if (topics.length === 0) {
+                    cell.innerHTML = '<span class="loading-topics">Нет топиков (не форум)</span>';
+                    return;
+                }
+                let html = '';
+                topics.forEach(t => {
+                    html += `<div class="topic-row">
+                        <span>${t.name} <em style="color:#888">[${t.id}]</em></span>
+                        <button class="btn-fill" onclick="fillForm(${chatId},'${esc(chatTitle)}',${t.id},'${esc(t.name)}')">↑ В форму</button>
+                    </div>`;
+                });
+                cell.innerHTML = html;
+            })
+            .catch(() => { cell.innerHTML = '<span style="color:#f88">Ошибка</span>'; });
+    }
+
+    function esc(s) { return s.replace(/'/g, "\\'"); }
+
     function loadChats() {
-        document.getElementById('chatList').innerHTML = 'Загрузка...';
+        const wrap = document.getElementById('chatListWrap');
+        wrap.innerHTML = 'Загрузка...';
         fetch('/telegram/chats')
             .then(r => r.json())
             .then(chats => {
                 if (chats.length === 0) {
-                    document.getElementById('chatList').innerHTML = '<span style="color:#aaa">Нет чатов или не авторизован</span>';
+                    wrap.innerHTML = '<span style="color:#aaa">Нет чатов или не авторизован</span>';
                     return;
                 }
-                let html = '<div style="margin-top:6px;">Нажмите на чат чтобы скопировать ID:</div>';
-                chats.forEach(c => {
-                    html += `<div class="chat-item" onclick="navigator.clipboard.writeText('${c.id}').then(()=>alert('Скопировано: ${c.id}'))">`
-                        + `[${c.id}] ${c.title}</div>`;
+                let html = '<table id="chatTable"><thead><tr>'
+                    + '<th style="width:35%">Чат</th>'
+                    + '<th style="width:15%">Chat ID</th>'
+                    + '<th style="width:15%">Действие</th>'
+                    + '<th style="width:35%">Топики</th>'
+                    + '</tr></thead><tbody>';
+                chats.forEach((c, i) => {
+                    html += `<tr>
+                        <td>${c.title}</td>
+                        <td style="font-size:11px">${c.id}</td>
+                        <td><button class="btn-fill-chat" onclick="fillForm(${c.id},'${esc(c.title)}',0,'')">↑ Весь чат</button></td>
+                        <td class="topics-cell" id="topics-${i}">
+                            <button class="btn-fill" onclick="loadTopicsForRow(${c.id},'${esc(c.title)}',document.getElementById('topics-${i}'))">Загрузить топики</button>
+                        </td>
+                    </tr>`;
                 });
-                document.getElementById('chatList').innerHTML = html;
+                html += '</tbody></table>';
+                wrap.innerHTML = html;
             })
-            .catch(() => {
-                document.getElementById('chatList').innerHTML = '<span style="color:#f88">Ошибка загрузки</span>';
-            });
+            .catch(() => { wrap.innerHTML = '<span style="color:#f88">Ошибка загрузки</span>'; });
     }
 </script>
 

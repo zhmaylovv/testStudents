@@ -117,4 +117,10 @@ public class TelegramController {
     public List<TelegramClientService.ChatInfo> getChats() {
         return telegramClientService.getChats();
     }
+
+    @GetMapping("/topics-for-chat")
+    @ResponseBody
+    public List<TelegramClientService.TopicInfo> getTopicsForChat(@RequestParam long chatId) {
+        return telegramClientService.getForumTopics(chatId);
+    }
 }

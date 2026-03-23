@@ -106,11 +106,11 @@
             <groupId>it.tdlight</groupId>
             <artifactId>tdlight-java</artifactId>
         </dependency>
-        <!-- Linux AMD64 with GNU GCC + OpenSSL 1 (для сервера) -->
+        <!-- Linux AMD64 with GNU GCC + OpenSSL 3 (Ubuntu 22.04+, Debian 12+, ubuntu-latest в CI) -->
         <dependency>
             <groupId>it.tdlight</groupId>
             <artifactId>tdlight-natives</artifactId>
-            <classifier>linux_amd64_gnu_ssl1</classifier>
+            <classifier>linux_amd64_gnu_ssl3</classifier>
         </dependency>
         <!-- Windows AMD64 (для локальной разработки) -->
         <dependency>
